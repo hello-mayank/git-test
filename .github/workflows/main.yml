@@ -1,51 +1,25 @@
-name: Build & Deploy Website
+name: Deploy HTML Website to EC2
 
 on:
   push:
     branches:
-      - main
-  pull_request:
+      - main     # main branch पर push होने पर deploy
+  workflow_dispatch:  # Manual run button enable करेगा
 
 jobs:
-  validate:
-    name: Validate Code
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-
-      - name: Install HTMLHint
-        run: npm install -g htmlhint
-
-      - name: Validate HTML
-        run: htmlhint "**/*.html" || true
-
-      - name: Install Stylelint
-        run: |
-          npm install -g stylelint stylelint-config-standard
-          echo '{ "extends": "stylelint-config-standard" }' > .stylelintrc.json
-
-      - name: Validate CSS
-        run: stylelint "**/*.css" || true
-
   deploy:
-    name: Deploy to GitHub Pages
     runs-on: ubuntu-latest
-    needs: validate
-    if: github.ref == 'refs/heads/main'
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      - name: Setup GitHub Pages
-        uses: actions/configure-pages@v3
-
-      - name: Upload Artifact
-        uses: actions/upload-pages-artifact@v2
-        with:
-          path: .
-
-      - name: Deploy
-        uses: actions/deploy-pages@v2
+      - name: Deploy to EC2 via SSH
+        uses: easingthemes/ssh-deploy@v2.1.5
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.EC2_KEY }}
+          REMOTE_HOST: ${{ secrets.EC2_HOST }}
+          REMOTE_USER: ${{ secrets.EC2_USER }}
+          TARGET: ${{ secrets.EC2_PATH }}
+          SOURCE: .
+          ARGS: "-rltgoDzvO --delete"
